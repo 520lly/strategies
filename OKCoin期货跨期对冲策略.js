@@ -4,13 +4,16 @@
 策略作者: 小小梦
 策略描述:
 
-OKCoin期货跨期对冲策略，季度、当周、次周
+### OKCoin期货跨期对冲策略，季度、当周、次周
 - 1、 季度-当周
 - 2、 季度-次周
 - 3、 当周-次周
 - 4、在周五交割前5分钟会自动 平仓， 锁定15分钟 后再正常运行。
 
-BUG：
+### 更新：
+- 更新新域名 修改API 地址 用于获取 交割时间，原地址 修改为 www.okex.com
+
+### BUG：
 在期货策略中 不能使用 Go函数 ，会导致切换合约问题， 对此 策略已经修改，改为一般调用。
 支持限价单模式。
 市价单模式有一些问题。
@@ -165,11 +168,12 @@ function CheckDelivery(nowTime, Symbol, task) {
         while (contractName == "") {
             //var contractInfo = HttpQuery("https://www.okcoin.com/api/v1/future_hold_amount.do?symbol=btc_usd&contract_type=this_week"); //只是检测this_week ,避免重复调用提高效率
             switch(ContractIndex){
-                case 0: contractInfo = HttpQuery("https://www.okcoin.com/api/v1/future_hold_amount.do?symbol=btc_usd&contract_type=this_week");
+                case 0: contractInfo = HttpQuery("https://www.okex.com/api/v1/future_hold_amount.do?symbol=btc_usd&contract_type=this_week");
+                        // www.okex.com  更换新域名
                         break;
-                case 1: contractInfo = HttpQuery("https://www.okcoin.com/api/v1/future_hold_amount.do?symbol=btc_usd&contract_type=next_week");
+                case 1: contractInfo = HttpQuery("https://www.okex.com/api/v1/future_hold_amount.do?symbol=btc_usd&contract_type=next_week");
                         break;
-                case 2: contractInfo = HttpQuery("https://www.okcoin.com/api/v1/future_hold_amount.do?symbol=btc_usd&contract_type=quarter");
+                case 2: contractInfo = HttpQuery("https://www.okex.com/api/v1/future_hold_amount.do?symbol=btc_usd&contract_type=quarter");
                         break;
                 default: Log("contractInfo:", contractInfo); 
                          //throw "switch NumContractType Error!";
@@ -407,7 +411,7 @@ function Hedge_Open_Cover(task){
         if((task.action[1] === "buy" && task.action[2] === "sell") || (task.action[1] === "sell" && task.action[2] === "buy")){ // open
             var tradeInfo_A = DealActionLimit(task, A, task.action[3]);
             var dealAmount_A = Math.abs(task.action[3]);
-            while(tradeInfo_A == false || (dealAmount_A -= tradeInfo_A.amount) !== 0){
+            while(tradeInfo_A == false || (dealAmount_A -= tradeInfo_A.amount) > 0){    //  此处应该  判断是否小于 0 。 等于 0 会引起 BUG ，修改为 大于 0 
                 Log("合约：" + task.symbolA + "已对冲" + (tradeInfo_A == false ? 0 : tradeInfo_A.amount), "剩余，重试！张数：" + dealAmount_A);
                 tradeInfo_A = DealActionLimit(task, A, dealAmount_A, true);
                 Sleep(Interval);
@@ -415,7 +419,7 @@ function Hedge_Open_Cover(task){
 
             var tradeInfo_B = DealActionLimit(task, B, task.action[3]);
             var dealAmount_B = Math.abs(task.action[3]);
-            while(tradeInfo_B == false || (dealAmount_B -= tradeInfo_B.amount) !== 0){
+            while(tradeInfo_B == false || (dealAmount_B -= tradeInfo_B.amount) > 0){
                 Log("合约：" + task.symbolB + "已对冲" + (tradeInfo_B == false ? 0 : tradeInfo_B.amount), "剩余，重试！张数：" + dealAmount_B);
                 tradeInfo_B = DealActionLimit(task, B, dealAmount_B, true);
                 Sleep(Interval);
@@ -426,7 +430,7 @@ function Hedge_Open_Cover(task){
         }else if((task.action[1] === "closesell" && task.action[2] === "closebuy") || (task.action[1] === "closebuy" && task.action[2] === "closesell")){ // cover
             var tradeInfo_A_Piece = DealActionLimit(task, A, task.action[3]);
             var dealAmount_A = Math.abs(task.action[3]);
-            while(tradeInfo_A_Piece == false || (dealAmount_A -= tradeInfo_A_Piece) !== 0){
+            while(tradeInfo_A_Piece == false || (dealAmount_A -= tradeInfo_A_Piece) > 0){    //  此处应该  判断是否小于 0 。 等于 0 会引起 BUG ，修改为 大于 0 
                 Log("合约：" + task.symbolA + "已对冲" + (tradeInfo_A == false ? 0 : tradeInfo_A_Piece), "剩余，重试！张数：" + dealAmount_A);
                 tradeInfo_A_Piece = DealActionLimit(task, A, dealAmount_A, true);
                 Sleep(Interval);
@@ -434,7 +438,7 @@ function Hedge_Open_Cover(task){
             
             var tradeInfo_B_Piece = DealActionLimit(task, B, task.action[3]);
             var dealAmount_B = Math.abs(task.action[3]);
-            while(tradeInfo_B_Piece == false || (dealAmount_B -= tradeInfo_B_Piece) !== 0){
+            while(tradeInfo_B_Piece == false || (dealAmount_B -= tradeInfo_B_Piece) > 0){
                 Log("合约：" + task.symbolB + "已对冲" + (tradeInfo_B == false ? 0 : tradeInfo_B_Piece), "剩余，重试！张数：" + dealAmount_B);
                 tradeInfo_B_Piece = DealActionLimit(task, B, dealAmount_B, true);
                 Sleep(Interval);
